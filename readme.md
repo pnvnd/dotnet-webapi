@@ -30,11 +30,13 @@
 `http://localhost:5000/WeatherForecast`
 ![Screenshot 7](/img/dotnet_07.png)
 
-9. Once it works, publish web API application to FolderProfile (Release, not Debug)  
+# Hosting Application on IIS
+
+1. Once it works, publish web API application to FolderProfile (Release, not Debug)  
 `dotnet publish -c Release -p:PublishProfile=FolderProfile`
 ![Screenshot 4](/img/dotnet_04.png)
 
-10. Create application folder somewhere convienient and copy everything in the publish folder here  
+2. Create application folder somewhere convienient and copy everything in the publish folder here  
 `mkdir C:\dotnet-webapi`  
 `xcopy .\bin\Release\net6.0\publish\ C:\dotnet-webapi\`
 
@@ -67,3 +69,52 @@ Note: Name of application pool will be reported to New Relic by default
 5. Go to `http://localhost:90/WeatherForecast` a few times to generate traffic
 6. Check New Relic APM > DefaultAppPool for APM data
 ![Screenshot 12](/img/dotnet_12.png)
+
+# Hosting in Docker Container
+
+1. Get a sample `dockerfile` from [New Relic](https://docs.newrelic.com/docs/apm/agents/net-agent/other-installation/install-net-agent-docker-container/) or use the sample below.  Place `dockerfile` in the root of this repository.
+
+```dockerfile
+ # Use the correct tagged version for your application's targeted runtime.  See https://hub.docker.com/_/microsoft-dotnet-aspnet/ 
+FROM mcr.microsoft.com/dotnet/aspnet:6.0
+
+# Publish your application.
+COPY ./bin/Release/net6.0/publish /app
+
+# Install the agent
+RUN apt-get update && apt-get install -y wget ca-certificates gnupg \
+&& echo 'deb http://apt.newrelic.com/debian/ newrelic non-free' | tee /etc/apt/sources.list.d/newrelic.list \
+&& wget https://download.newrelic.com/548C16BF.gpg \
+&& apt-key add 548C16BF.gpg \
+&& apt-get update \
+&& apt-get install -y newrelic-netcore20-agent \
+&& rm -rf /var/lib/apt/lists/*
+
+# Enable the agent
+ENV CORECLR_ENABLE_PROFILING=1 \
+CORECLR_PROFILER={36032161-FFC0-4B61-B559-F6C5D41BAE5A} \
+CORECLR_NEWRELIC_HOME=/usr/local/newrelic-netcore20-agent \
+CORECLR_PROFILER_PATH=/usr/local/newrelic-netcore20-agent/libNewRelicProfiler.so
+
+WORKDIR /app
+
+EXPOSE 80
+
+ENTRYPOINT ["dotnet", "./dotnet-webapi.dll"]
+```
+
+3. Download and [Install Docker Desktop](https://www.docker.com/products/docker-desktop)
+4. Open a terminal and navigate to the root of this repository
+5. Create a file called `.env` to put in environment variables for your container (the `.env` has been placed in the `.gitignore` file to prevent you from uploading your license key online).
+
+```
+NEW_RELIC_LICENSE_KEY=XXXXXXXXXXXXXXXXXXXXXXXXNRAL
+NEW_RELIC_APP_NAME=dotnet-api.docker
+```
+
+5. Run this command to build the Docker container: `docker build -t dotnet-webapi:latest .`
+6. Run this command to run the container: `docker run -d --env-file .env -p 80:80 dotnet-webapi:latest`
+7. Access the webapi at: `http:/127.0.0.1/WeatherForecast`
+8. Check New Relic One > APM to see transactions
+
+![Screenshot 13](/img/dotnet_13.png)
