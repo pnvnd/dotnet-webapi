@@ -108,12 +108,13 @@ ENTRYPOINT ["dotnet", "./dotnet-webapi.dll"]
 5. Create a file called `.env` to put in environment variables for your container (the `.env` has been placed in the `.gitignore` file to prevent you from uploading your license key online).
 
 ```
-NEW_RELIC_LICENSE_KEY=XXXXXXXXXXXXXXXXXXXXXXXXNRAL
+NEW_RELIC_LICENSE_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXNRAL
 NEW_RELIC_APP_NAME=dotnet-api.docker
 ```
 
 5. Run this command to build the Docker container: `docker build -t dotnet-webapi:latest .`
 6. Run this command to run the container: `docker run -d --env-file .env -p 80:80 dotnet-webapi:latest`
+6. Alternatively, run `docker run -d -e NEW_RELIC_LICENSE_KEY="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXNRAL" -e NEW_RELIC_APP_NAME="dotnet-api.docker" -p 80:80 dotnet-webapi:latest`
 7. Access the webapi at: `http:/127.0.0.1/WeatherForecast`
 8. Check New Relic One > APM to see transactions
 
