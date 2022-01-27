@@ -36,7 +36,7 @@
 
 10. Create application folder somewhere convienient and copy everything in the publish folder here  
 `mkdir C:\dotnet-webapi`  
-`copy .\bin\Release\net6.0\publish\ C:\dotnet-webapi\`
+`xcopy .\bin\Release\net6.0\publish\ C:\dotnet-webapi\`
 
 ## Install Internet Information Services (IIS) Manager
 1. Control Panel > Programs and Features > Turn Windows features on or off > Install Internet Information Services
