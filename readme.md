@@ -119,3 +119,40 @@ NEW_RELIC_APP_NAME=dotnet-api.docker
 8. Check New Relic One > APM to see transactions
 
 ![Screenshot 13](/img/dotnet_13.png)
+
+# Custom Attributes
+1. In your project folder containing `.csproj` by entering the following in the terminal: `dotnet add package NewRelic.Agent.Api --version 9.5.0`
+
+2. Edit `WeatherForecastController.cs` and add the following on the first line: `using NewRelic.Api.Agent;`
+
+3. Also, add the following just before the `return` statement on line 25
+```cs
+[HttpGet(Name = "GetWeatherForecast")]
+public IEnumerable<WeatherForecast> Get()
+{
+    IAgent agent = NewRelic.Api.Agent.NewRelic.GetAgent();
+    ITransaction transaction = agent.CurrentTransaction;
+    transaction.AddCustomAttribute("dockerVersion", "4.4.4");
+    return Enumerable.Range(1, 5).Select(index => new WeatherForecast
+    {
+        Date = DateTime.Now.AddDays(index),
+        TemperatureC = Random.Shared.Next(-20, 55),
+        Summary = Summaries[Random.Shared.Next(Summaries.Length)]
+    })
+    .ToArray();
+}
+```
+
+4. Rebuild the application and docker image, and run to test
+```
+dotnet build .
+dotnet publish -c Release -p:PublishProfile=FolderProfile
+xcopy .\bin\Release\net6.0\publish\ C:\dotnet-webapi\ 
+docker build -t dotnet-webapi:latest .
+docker run -d --env-file .env -p 80:80 dotnet-webapi:latest
+```
+5. In New Relic, try this NRQL query to see your newly added custom attribute:
+```nrql
+SELECT * FROM Transaction WHERE appName='dotnet-api.docker' SINCE 1 hour ago
+```
+![Screenshot 14](/img/dotnet_14.png)
