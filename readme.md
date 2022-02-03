@@ -156,3 +156,91 @@ docker run -d --env-file .env -p 80:80 dotnet-webapi:latest
 SELECT * FROM Transaction WHERE appName='dotnet-api.docker' SINCE 1 hour ago
 ```
 ![Screenshot 14](/img/dotnet_14.png)
+
+# Deploy to Kubernetes via Minikiube (Hyper-V)
+1. Get download `minikube` and `kubectl`, and set path to the folder containing these.
+2. Enable Hyper-V  
+![Screenshot 15](/img/dotnet_15.png)
+
+3. Open Hyper-V Manager and create a new external virtual switch called `New Virtual Switch`
+![Screenshot 16](/img/dotnet_16.png)
+
+2. Open terminal as Administrator and create a new minikube (kubernetes) cluster 
+```
+minikube start --driver=hyperv --hyperv-virtual-switch='New Virtual Switch' --cni=flannel --cpus=4 --memory=4096 -p dotnet-webapi
+```
+3. We need to re-build the Docker image so it appears in the minikube Docker repository instead of your localhost Docker image repository.  Run this command to switch Docker repository to minikiube:  
+```
+minikube -p dotnet-webapi docker-env | Invoke-Expression
+```
+4. Check `docker images` to see the images in your minikube image repository instead of your local Docker image repository.  
+![Screenshot 17](/img/dotnet_17.png)
+
+5. Before you re-build the docker image, update the `dockerfile` to include the environment variables for `NEW_RELIC_LICENSE_KEY` and `NEW_RELIC_APP_NAME`.  This was left out previously to prevent uploading keys online.  
+```
+# Enable the agent
+ENV CORECLR_ENABLE_PROFILING=1 \
+CORECLR_PROFILER={36032161-FFC0-4B61-B559-F6C5D41BAE5A} \
+CORECLR_NEWRELIC_HOME=/usr/local/newrelic-netcore20-agent \
+CORECLR_PROFILER_PATH=/usr/local/newrelic-netcore20-agent/libNewRelicProfiler.so \
+NEW_RELIC_LICENSE_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXNRAL \
+NEW_RELIC_APP_NAME=dotnet-api.docker
+```
+6. Build the Docker image with the new `dockerfile` using `docker build -t dotnet-webapi:test .`
+7. Run this with 
+```
+kubectl apply -f dotnet-webapi.yaml
+```
+8. In a different terminal, expose the service to an external IP in minikube:  
+```
+minikube tunnel -p dotnet-webapi
+```
+9. Check `kubectl get pods` to make sure the pod is running.
+10. Get the external IP using `kubectl get services`  
+![Screenshot 18](/img/dotnet_18.png)
+11. Check out the service `http://<EXTERNAL-IP>/WeatherForecast`
+12. If the new Docker image was built correctly with the environment variables added in, you should now be able to see this data in New Relic as well under Kubernetes Cluster Explorer  
+![Screenshot 19](/img/dotnet_19.png)
+
+## Monitor Kubernetes Cluster with Pixie
+1. Download `helm` and set PATH to its containing folder.
+2. Go to New Relic to add more data and select "Kubernetes"
+![Screenshot 20](/img/dotnet_20.png)
+3. Enter a namespace for the Kubernetes instrumentation and click next.
+4. Copy and paste the code to a notepad and replace `&&` with `;` and replace `\` with `` ` `` to run in PowerShell.  It should look something like this for PowerShell:
+```
+kubectl apply -f https://download.newrelic.com/install/kubernetes/pixie/latest/px.dev_viziers.yaml; 
+kubectl apply -f https://download.newrelic.com/install/kubernetes/pixie/latest/olm_crd.yaml; 
+helm repo add newrelic https://helm-charts.newrelic.com;
+helm repo update; 
+kubectl create namespace newrelic;
+
+helm upgrade --install newrelic-bundle newrelic/nri-bundle `
+ --set global.licenseKey=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8NRAL `
+ --set global.cluster=tiny-hat `
+ --namespace=newrelic `
+ --set newrelic-infrastructure.privileged=true `
+ --set global.lowDataMode=true `
+ --set ksm.enabled=true `
+ --set prometheus.enabled=true `
+ --set kubeEvents.enabled=true `
+ --set logging.enabled=true `
+ --set newrelic-pixie.enabled=true `
+ --set newrelic-pixie.apiKey=px-api-a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o0p5 `
+ --set pixie-chart.enabled=true `
+ --set pixie-chart.deployKey=px-dep-d4c3b2a1-f6e5-h8g7-j0i9-p5o0n4m3l2k1 `
+ --set pixie-chart.clusterName=tiny-hat
+```
+![Screenshot 21](/img/dotnet_21.png)
+
+5. New pods will be created under the `newrelic`, `olm`, and `px-operator` namespace within 5 minutes.
+![Screenshot 22](/img/dotnet_22.png)
+
+6. Go back to the Kubernetes Cluster Explorer to see your minikube cluster.
+![Screenshot 23](/img/dotnet_23.png)
+
+7. Check out the `Control Plane` and `Events` to get a feel for what kind of data is coming in, and compare it to what you see in APM.  Then, check out `Live debugging with Pixie`.
+![Screenshot 24](/img/dotnet_24.png)
+
+8. In `Live debugging with Pixie` click on the dropdown for `script` and select `px/perf_flamegraph` and filter as needed to see performance data,.
+![Screenshot 25](/img/dotnet_25.png)

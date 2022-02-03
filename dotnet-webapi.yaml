@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dotnet-webapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dotnet-webapi
+  template:
+    metadata:
+      labels:
+        app: dotnet-webapi
+    spec:
+      containers:
+        - name: dotnet-webapi
+          image: dotnet-webapi:test
+          ports:
+            - containerPort: 80
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dotnet-webapi
+spec:
+  selector:
+    app: dotnet-webapi
+  ports:
+    - port: 80
+      targetPort: 80
+  type: LoadBalancer
