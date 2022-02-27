@@ -121,7 +121,10 @@ NEW_RELIC_APP_NAME=dotnet-api.docker
 ![Screenshot 13](/img/dotnet_13.png)
 
 # Custom Attributes
-1. In your project folder containing `.csproj` by entering the following in the terminal: `dotnet add package NewRelic.Agent.Api --version 9.5.0`
+1. In your project folder containing `.csproj` by entering the following in the terminal:
+```
+dotnet add package NewRelic.Agent.Api --version 9.5.0
+```
 
 2. Edit `WeatherForecastController.cs` and add the following on the first line: `using NewRelic.Api.Agent;`
 
@@ -244,3 +247,51 @@ helm upgrade --install newrelic-bundle newrelic/nri-bundle `
 
 8. In `Live debugging with Pixie` click on the dropdown for `script` and select `px/perf_flamegraph` and filter as needed to see performance data,.
 ![Screenshot 25](/img/dotnet_25.png)
+
+# OpenTelemetry
+
+1. Install the following.  Notice it will add to your `.csproj` file.
+```
+dotnet add package OpenTelemetry --prerelease
+dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol --prerelease
+dotnet add package OpenTelemetry.Instrumentation.AspNetCore --prerelease
+dotnet add package OpenTelemetry.Instrumentation.Http --prerelease
+dotnet add package OpenTelemetry.Extensions.Hosting --prerelease
+```
+
+2. In the `program.cs` file, add the following at the top of the code:
+```cs
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+```
+
+3. Finally, just before `builder.Services.AddControllers();` add the following:
+```cs
+builder.Services.AddOpenTelemetryTracing(b =>
+{
+    b
+    .AddOtlpExporter(options =>
+        {
+            options.Endpoint = new Uri($"{Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")}");
+            options.Headers = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_HEADERS");
+        })
+    .SetResourceBuilder(
+        ResourceBuilder
+            .CreateDefault()
+            .AddService("dotnet-webapi.otel")
+            .AddAttributes(new Dictionary<string, object> { {"environment", "production"} })
+    )
+    .AddHttpClientInstrumentation()
+    .AddAspNetCoreInstrumentation();
+});
+```
+
+4. Build the application with `dotnet build .` 
+
+5. Before running with `dotnet bin/Debug/net6.0/dotnet-webapi.dll` set the following environment variables:
+```
+OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.nr-data.net:4317
+OTEL_EXPORTER_OTLP_HEADERS=api-key=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXNRAL
+```
+
+6. Check New Relic One > Services - OpenTelemetry to see the data.
