@@ -13,6 +13,7 @@ builder.Services.AddOpenTelemetryTracing(b =>
     b
     .AddOtlpExporter(options =>
         {
+            // options.Endpoint = new Uri("http://localhost:4317");
             options.Endpoint = new Uri($"{Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")}");
             options.Headers = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_HEADERS");
         })

@@ -295,3 +295,15 @@ OTEL_EXPORTER_OTLP_HEADERS=api-key=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXNRAL
 ```
 
 6. Check New Relic One > Services - OpenTelemetry to see the data.
+
+## Jaeger
+1. To see OpenTelemetry data in Jaeger UI instead, change the endpoint and spin up a jaeger container
+    ```powershell
+    $env:OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
+    docker run --name jaeger -p 13133:13133 -p 16686:16686 -p 4317:55680 -d --restart=unless-stopped jaegertracing/opentelemetry-all-in-one
+    ```
+2. Run the application generate some traffic
+
+3. Go to http://localhost:16686 to see Jaeger UI.
+
+4. Notice no change was done to the code, only environment variables were changed to specify which endpoint to export traces.
