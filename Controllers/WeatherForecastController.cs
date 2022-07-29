@@ -1,4 +1,4 @@
-using NewRelic.Api.Agent;
+// using NewRelic.Api.Agent;
 using Microsoft.AspNetCore.Mvc;
 
 namespace dotnet_webapi.Controllers;
@@ -22,9 +22,9 @@ public class WeatherForecastController : ControllerBase
     [HttpGet(Name = "GetWeatherForecast")]
     public IEnumerable<WeatherForecast> Get()
     {
-        IAgent agent = NewRelic.Api.Agent.NewRelic.GetAgent();
-        ITransaction transaction = agent.CurrentTransaction;
-        transaction.AddCustomAttribute("dockerVersion", "4.4.4");
+        // IAgent agent = NewRelic.Api.Agent.NewRelic.GetAgent();
+        // ITransaction transaction = agent.CurrentTransaction;
+        // transaction.AddCustomAttribute("dockerVersion", "4.4.4");
         return Enumerable.Range(1, 5).Select(index => new WeatherForecast
         {
             Date = DateTime.Now.AddDays(index),
