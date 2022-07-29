@@ -14,14 +14,14 @@ builder.Services.AddOpenTelemetryTracing(b =>
     .AddOtlpExporter(options =>
         {
             options.Endpoint = new Uri("https://otlp.nr-data.net:4317");
-            options.Headers = "api-key=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXNRAL";
+            options.Headers = "api-key=35ac3e1b0d9dee316a6f63b7eba067e9FFFFNRAL";
             // options.Endpoint = new Uri($"{Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")}");
             // options.Headers = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_HEADERS");
         })
     .SetResourceBuilder(
         ResourceBuilder
             .CreateDefault()
-            .AddService("dotnet-webapi.otel")
+            .AddService("dotnet-webapi.otel", serviceInstanceId: Guid.NewGuid().ToString())
             .AddAttributes(new Dictionary<string, object> { {"environment", "production"} })
     )
     .AddHttpClientInstrumentation()
